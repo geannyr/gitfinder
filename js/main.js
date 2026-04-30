@@ -4,8 +4,17 @@
   const form = document.getElementById('searchForm');
   const input = document.getElementById('userInput');
   const button = document.getElementById('searchBtn');
+  const buttonText = document.getElementById('searchBtnText');
   const resultArea = document.getElementById('resultArea');
   const emptyState = document.getElementById('emptyState');
+  const footerText = document.getElementById('footerText');
+
+  const t = (key, vars) => window.i18n?.t(key, vars) ?? key;
+
+  // Cache last successful response so we can re-render on language switch
+  let lastUser = null;
+  let lastRepos = null;
+  let lastError = null; // { kind, vars }
 
   const escapeHtml = (str) => {
     const div = document.createElement('div');
@@ -32,22 +41,30 @@
     Swift: '#F05138',      Kotlin: '#A97BFF',     Dart: '#00B4AB',
   };
 
-  function setLoading(isLoading) {
+  function setLoading(isLoading, username) {
     button.disabled = isLoading;
-    button.querySelector('span').textContent = isLoading ? 'Buscando…' : 'Buscar';
+    if (isLoading) {
+      buttonText.textContent = t('searching', { user: username }).replace(/…$/, '');
+    } else {
+      buttonText.textContent = t('search');
+    }
   }
 
   async function searchUser(username) {
     username = username.trim();
     if (!username) return;
 
+    lastUser = null;
+    lastRepos = null;
+    lastError = null;
+
     emptyState.classList.add('hidden');
     resultArea.innerHTML = `
       <div class="loader">
         <div class="loader-spinner"></div>
-        <span>Buscando @${escapeHtml(username)}…</span>
+        <span>${escapeHtml(t('searching', { user: username }))}</span>
       </div>`;
-    setLoading(true);
+    setLoading(true, username);
 
     try {
       const [userRes, reposRes] = await Promise.all([
@@ -56,32 +73,42 @@
       ]);
 
       if (userRes.status === 404) {
-        renderNotFound(username);
+        lastError = { kind: 'notFound', vars: { user: username } };
+        renderError();
         return;
       }
       if (userRes.status === 403) {
-        renderError('Limite de requisições da API atingido', 'Tente novamente em alguns minutos.');
+        lastError = { kind: 'rateLimit' };
+        renderError();
         return;
       }
       if (!userRes.ok) {
-        renderError(`Erro ${userRes.status}`, userRes.statusText || 'Não foi possível buscar o perfil.');
+        lastError = { kind: 'generic', vars: { code: userRes.status } };
+        renderError();
         return;
       }
 
       const user = await userRes.json();
       const repos = reposRes.ok ? await reposRes.json() : [];
-      renderProfile(user, repos);
+      lastUser = user;
+      lastRepos = repos;
+      renderProfile();
     } catch (err) {
-      renderError('Falha de conexão', 'Verifique sua internet e tente novamente.');
+      lastError = { kind: 'network' };
+      renderError();
     } finally {
       setLoading(false);
     }
   }
 
-  function renderProfile(user, repos) {
+  function renderProfile() {
+    if (!lastUser) return;
+    const user = lastUser;
+    const repos = lastRepos || [];
+
     resultArea.innerHTML = `
       <article class="profile-card">
-        <img src="${user.avatar_url}" alt="Avatar de ${escapeHtml(user.login)}" class="profile-avatar" loading="lazy">
+        <img src="${user.avatar_url}" alt="Avatar of ${escapeHtml(user.login)}" class="profile-avatar" loading="lazy">
         <div class="profile-info">
           <h2>${escapeHtml(user.name || user.login)}</h2>
           <a href="${user.html_url}" target="_blank" rel="noopener" class="profile-login">
@@ -91,12 +118,12 @@
           ${user.bio ? `<p class="profile-bio">${escapeHtml(user.bio)}</p>` : ''}
           ${renderMeta(user)}
           <div class="profile-stats">
-            <div class="stat"><strong>${formatNumber(user.public_repos)}</strong><span>Repositórios</span></div>
-            <div class="stat"><strong>${formatNumber(user.followers)}</strong><span>Seguidores</span></div>
-            <div class="stat"><strong>${formatNumber(user.following)}</strong><span>Seguindo</span></div>
+            <div class="stat"><strong>${formatNumber(user.public_repos)}</strong><span>${escapeHtml(t('stats.repos'))}</span></div>
+            <div class="stat"><strong>${formatNumber(user.followers)}</strong><span>${escapeHtml(t('stats.followers'))}</span></div>
+            <div class="stat"><strong>${formatNumber(user.following)}</strong><span>${escapeHtml(t('stats.following'))}</span></div>
           </div>
           <a href="${user.html_url}" target="_blank" rel="noopener" class="profile-cta">
-            Ver perfil no GitHub
+            ${escapeHtml(t('viewProfile'))}
             ${arrowUpRightIcon()}
           </a>
         </div>
@@ -104,7 +131,7 @@
 
       ${repos.length > 0 ? `
         <section class="repos-section">
-          <h3 class="repos-header">Repositórios recentes</h3>
+          <h3 class="repos-header">${escapeHtml(t('recentRepos'))}</h3>
           <div class="repos-grid">
             ${repos.map(renderRepo).join('')}
           </div>
@@ -137,7 +164,7 @@
         <h4>${escapeHtml(repo.name)}</h4>
         ${repo.description
           ? `<p>${escapeHtml(repo.description)}</p>`
-          : '<p class="muted">— sem descrição</p>'}
+          : `<p class="muted">${escapeHtml(t('noDescription'))}</p>`}
         <div class="repo-footer">
           ${repo.language
             ? `<span class="lang" style="color: ${langColor}"><span class="lang-dot"></span>${escapeHtml(repo.language)}</span>`
@@ -149,25 +176,39 @@
     `;
   }
 
-  function renderNotFound(username) {
-    resultArea.innerHTML = `
-      <div class="error-state">
-        <strong>Usuário não encontrado</strong>
-        <p>Nenhum perfil chamado <strong>@${escapeHtml(username)}</strong> existe no GitHub.</p>
-      </div>
-    `;
-  }
+  function renderError() {
+    if (!lastError) return;
+    const { kind, vars = {} } = lastError;
+    const titleMap = {
+      notFound: 'errors.notFoundTitle',
+      rateLimit: 'errors.rateLimitTitle',
+      generic: 'errors.genericTitle',
+      network: 'errors.networkTitle'
+    };
+    const descMap = {
+      notFound: 'errors.notFoundDesc',
+      rateLimit: 'errors.rateLimitDesc',
+      generic: 'errors.genericDesc',
+      network: 'errors.networkDesc'
+    };
+    const title = t(titleMap[kind], vars);
+    const desc = t(descMap[kind], vars);
 
-  function renderError(title, msg) {
     resultArea.innerHTML = `
       <div class="error-state">
         <strong>${escapeHtml(title)}</strong>
-        <p>${escapeHtml(msg)}</p>
+        <p>${escapeHtml(desc)}</p>
       </div>
     `;
   }
 
-  /* ----- inline icons (avoid extra requests) ----- */
+  function rerenderCurrent() {
+    if (lastError) renderError();
+    else if (lastUser) renderProfile();
+    setLoading(false);
+  }
+
+  /* ----- inline icons ----- */
   const arrowUpRightIcon = () => `<svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M7 17 17 7M7 7h10v10"/></svg>`;
   const pinIcon = () => `<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 10c0 7-8 13-8 13s-8-6-8-13a8 8 0 0 1 16 0Z"/><circle cx="12" cy="10" r="3"/></svg>`;
   const buildingIcon = () => `<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 21h18M5 21V7l8-4v18M19 21V11l-6-4"/></svg>`;
@@ -190,8 +231,11 @@
     });
   });
 
-  // Auto-load "geannyr" on first visit so the page is never empty
+  // Re-render dynamic content when language changes
   document.addEventListener('DOMContentLoaded', () => {
+    window.i18n?.onChange(rerenderCurrent);
+
+    // Auto-load "geannyr" so the page is never empty
     input.value = 'geannyr';
     searchUser('geannyr');
   });

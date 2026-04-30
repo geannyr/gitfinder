@@ -1,10 +1,10 @@
 <!DOCTYPE html>
-<html lang="pt-BR">
+<html lang="en">
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>GitFinder · Buscador de Perfil GitHub</title>
-  <meta name="description" content="GitFinder — busque qualquer perfil do GitHub e veja seus repositórios mais recentes em tempo real.">
+  <title>GitFinder · GitHub Profile Finder</title>
+  <meta name="description" content="GitFinder — search any GitHub profile and see their most recent repositories in real time.">
 
   <link rel="icon" type="image/svg+xml" href="favicon.svg">
   <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -15,12 +15,20 @@
 </head>
 <body>
   <main class="container">
-    <header class="hero">
+    <div class="header-bar">
       <a href="https://geannyr.github.io/curriculo2/" class="back-link" target="_blank" rel="noopener">
         <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M19 12H5M12 19l-7-7 7-7"/></svg>
-        Portfólio
+        <span data-i18n="back">Portfolio</span>
       </a>
 
+      <div class="lang-toggle" role="group" data-i18n-attr="aria-label:a11y.changeLang" aria-label="Change language">
+        <button type="button" data-lang="en">EN</button>
+        <button type="button" data-lang="pt">PT</button>
+        <button type="button" data-lang="es">ES</button>
+      </div>
+    </div>
+
+    <header class="hero">
       <div class="brand">
         <svg class="brand-icon" width="42" height="42" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
           <circle cx="11" cy="11" r="7"/>
@@ -28,27 +36,28 @@
         </svg>
         <h1>Git<span>Finder</span></h1>
       </div>
-      <p class="tagline">Pesquise qualquer perfil do GitHub e veja seus repositórios em tempo real.</p>
+      <p class="tagline" data-i18n="tagline">Search any GitHub profile and see their repositories in real time.</p>
 
       <form id="searchForm" class="search-form" autocomplete="off">
         <span class="search-prefix">@</span>
         <input
           type="text"
           id="userInput"
-          placeholder="usuário do github"
+          data-i18n-attr="placeholder:placeholder"
+          placeholder="github username"
           spellcheck="false"
           autocapitalize="off"
           autocorrect="off"
           required
         >
         <button type="submit" id="searchBtn">
-          <span>Buscar</span>
+          <span id="searchBtnText" data-i18n="search">Search</span>
           <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h14M12 5l7 7-7 7"/></svg>
         </button>
       </form>
 
       <div class="suggestions">
-        <span>Tente:</span>
+        <span data-i18n="tryLabel">Try:</span>
         <button type="button" class="chip" data-user="geannyr">geannyr</button>
         <button type="button" class="chip" data-user="torvalds">torvalds</button>
         <button type="button" class="chip" data-user="gaearon">gaearon</button>
@@ -58,18 +67,16 @@
 
     <section id="resultArea" class="result" aria-live="polite"></section>
 
-    <p id="emptyState" class="empty-state">Digite um usuário acima para começar.</p>
+    <p id="emptyState" class="empty-state" data-i18n="emptyState">Type a username above to get started.</p>
 
     <footer class="footer">
-      <p>
-        Feito por
-        <a href="https://geannyr.github.io/curriculo2/" target="_blank" rel="noopener">Geanny Rodrigues</a>
-        · dados via
-        <a href="https://docs.github.com/en/rest" target="_blank" rel="noopener">GitHub REST API</a>
+      <p id="footerText">
+        Made by <a href="https://geannyr.github.io/curriculo2/" target="_blank" rel="noopener">Geanny Rodrigues</a> · data via <a href="https://docs.github.com/en/rest" target="_blank" rel="noopener">GitHub REST API</a>
       </p>
     </footer>
   </main>
 
+  <script src="js/i18n.js"></script>
   <script src="js/main.js"></script>
 </body>
 </html>

@@ -93,11 +93,14 @@ img { max-width: 100%; display: block; }
 }
 
 /* ============================================
-   HERO
+   HEADER BAR (back link + lang switcher)
    ============================================ */
-.hero {
-  text-align: center;
-  margin-bottom: 56px;
+.header-bar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  margin-bottom: 36px;
 }
 
 .back-link {
@@ -107,7 +110,6 @@ img { max-width: 100%; display: block; }
   color: var(--text-subtle);
   font-size: 0.82rem;
   font-weight: 500;
-  margin-bottom: 36px;
   padding: 6px 12px;
   border-radius: 50px;
   transition: color var(--ease), background var(--ease);
@@ -116,6 +118,48 @@ img { max-width: 100%; display: block; }
 .back-link:hover {
   color: var(--text);
   background: var(--bg-surface);
+}
+
+.lang-toggle {
+  display: inline-flex;
+  background: var(--bg-surface);
+  border: 1px solid var(--border);
+  border-radius: 50px;
+  padding: 3px;
+  backdrop-filter: blur(14px);
+  -webkit-backdrop-filter: blur(14px);
+}
+
+.lang-toggle button {
+  background: none;
+  border: none;
+  color: var(--text-subtle);
+  font-family: var(--font-body);
+  font-size: 0.74rem;
+  font-weight: 600;
+  letter-spacing: 0.5px;
+  padding: 6px 12px;
+  border-radius: 50px;
+  cursor: pointer;
+  transition: color var(--ease), background var(--ease);
+}
+
+.lang-toggle button:hover {
+  color: var(--text);
+}
+
+.lang-toggle button.active {
+  color: #fff;
+  background: var(--accent);
+  box-shadow: 0 2px 8px rgba(167, 139, 250, 0.3);
+}
+
+/* ============================================
+   HERO
+   ============================================ */
+.hero {
+  text-align: center;
+  margin-bottom: 56px;
 }
 
 .brand {
